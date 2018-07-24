@@ -2,7 +2,7 @@
 The whole process to establish a tree-based credit model in python.
 
 
-# DEMO 
+# A SMALL DEMO 
 import sys
 sys.path.append("/home/mlp/notebooks/functions")
 from function import * 
@@ -17,5 +17,4 @@ xgb_classifier = PMMLPipeline(steps=[
                 ])
                 
 xgb_classifier.fit(dev_x, dev_y)
-# xgb_classifier.fit(dev_bal_x, dev_bal_y)
 mt.some_reports(dev, val, oft, oft2, oft3, xgb_classifier, 10, 20, 'GBDT', 0, 0, './reports/less_1y/test.xlsx')
