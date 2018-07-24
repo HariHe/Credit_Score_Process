@@ -855,7 +855,7 @@ class model_train(object):
         df_ks, df_auc, df_gain = ks_report(df_y.values, df_score.T[1], bins=bins)       
         return df_ks
 
-    def some_reports(self, dev, val, oft1, oft2, oft3, classifier, plot_vars_num='null', bins=20, type='GBDT', psi_flag=0, bivar_flag=1, filename='./output.xlsx'):
+    def some_reports(self, dev, val, oft1, oft2, oft3, classifier, params,dev_lst,oft_lst1,oft_lst2,oft_lst3, plot_vars_num='null', bins=20, type='GBDT', psi_flag=0, bivar_flag=1, filename='./output.xlsx'):
         dev_x, dev_y = self.x_y_split(dev)
         val_x, val_y = self.x_y_split(val)
         oft1_x, oft1_y = self.x_y_split(oft1)
@@ -890,7 +890,24 @@ class model_train(object):
         
         worksheet0 = workbook.add_worksheet('log')
         worksheet0.write('A1','Model Report', cell_format_bold)
+        worksheet0.write('A3','1. Xgboost Model Params Setting:', cell_format_bold)
+        worksheet0.write('A4','max_depth: {}'.format(params['max_depth']), cell_format1)
+        worksheet0.write('A5','learning_rate: {}'.format(params['learning_rate']), cell_format1)
+        worksheet0.write('A6','n_estimators: {}'.format(params['n_estimators']), cell_format1)
+        worksheet0.write('A7','nthread: {}'.format(params['nthread']), cell_format1)
+        worksheet0.write('A8','reg_alpha: {}'.format(params['reg_alpha']), cell_format1)
+        worksheet0.write('A9','reg_lambda: {}'.format(params['reg_lambda']), cell_format1)
+        worksheet0.write('A10','subsample: {}'.format(params['subsample']), cell_format1)
+        worksheet0.write('A11','min_child_weight: {}'.format(params['min_child_weight']), cell_format1)
         
+        worksheet0.write('A15','2. dev&oft sample define:', cell_format_bold)
+        worksheet0.write('A16','dev:{}(70% sample)'.format(dev_lst[0]+','+dev_lst[1]), cell_format1)
+        worksheet0.write('A17','val:{}(30% sample)'.format(dev_lst[0]+','+dev_lst[1]), cell_format1)
+        worksheet0.write('A18','oft1:{}'.format(oft_lst1[0]), cell_format1)
+        worksheet0.write('A19','oft2:{}'.format(oft_lst2[0]), cell_format1)
+        worksheet0.write('A20','oft3:{}'.format(oft_lst3[0]), cell_format1)
+        
+        worksheet0.write('A22','3. dev sample distribution:', cell_format_bold)
         # 样本好坏分布
         t1 = pd.DataFrame(columns=['num_good', 'num_bad'], index=['dev','val','oft1','oft2','oft3'])
         t = dev[self.tgt].value_counts()
@@ -910,15 +927,13 @@ class model_train(object):
         t1.loc['oft3','num_bad'] = t[1]
         t1['bad_rate']=t1['num_bad']/(t1['num_bad']+t1['num_good'])
         
-        worksheet0.write_row('B3', list(t1.columns), cell_format2)
-        worksheet0.write_column('A4', t1.index,cell_format1)
-        worksheet0.write_column('B4', t1['num_good'],cell_format1)
-        worksheet0.write_column('C4', t1['num_bad'],cell_format1)
-        worksheet0.write_column('D4', t1['bad_rate'],cell_format1)
+        worksheet0.write_row('B23', list(t1.columns), cell_format2)
+        worksheet0.write_column('A24', t1.index,cell_format1)
+        worksheet0.write_column('B24', t1['num_good'],cell_format1)
+        worksheet0.write_column('C24', t1['num_bad'],cell_format1)
+        worksheet0.write_column('D24', t1['bad_rate'],cell_format1)
         
-        worksheet0.write('A11','Xgboost Model Params Setting:', cell_format_bold)
-        
-        
+     
         worksheet_desc = workbook.add_worksheet('describe')
         worksheet_desc.write('A1','Dev Variables Base Description', cell_format_bold)
         dev_desc=dev_x.describe().T.reset_index()
