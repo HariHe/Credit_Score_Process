@@ -46,6 +46,69 @@ from sklearn.utils.multiclass import type_of_target
 
 from collections import Counter
 
+def score_dist_10(x):
+    if x>0 and x<=0.1:
+         return '0.00~0.10'
+    elif x>0.1 and x<=0.20:
+         return '0.10~0.20'  
+    elif x>0.2 and x<=0.30:
+         return '0.20~0.30' 
+    elif x>0.3 and x<=0.40:
+         return '0.30~0.40' 
+    elif x>0.4 and x<=0.50:
+         return '0.40~0.50'
+    elif x>0.5 and x<=0.60:
+         return '0.50~0.60'
+    elif x>0.6 and x<=0.70:
+         return '0.60~0.70'
+    elif x>0.7 and x<=0.80:
+         return '0.70~0.80'
+    elif x>0.8 and x<=0.90:
+         return '0.80~0.90'
+    elif x>0.9 and x<=1.00:
+         return '0.90~1.00'
+            
+def score_dist_20(x):
+    if x>0 and x<=0.05:
+         return '0.00~0.05'
+    elif x>0.05 and x<=0.10:
+         return '0.05~0.10'
+    elif x>0.10 and x<=0.15:
+         return '0.10~0.15'
+    elif x>0.15 and x<=0.20:
+         return '0.15~0.20'
+    elif x>0.20 and x<=0.25:
+         return '0.20~0.25'
+    elif x>0.25 and x<=0.30:
+         return '0.25~0.30'
+    elif x>0.30 and x<=0.35:
+         return '0.30~0.35'
+    elif x>0.35 and x<=0.40:
+         return '0.35~0.40'
+    elif x>0.40 and x<=0.45:
+         return '0.40~0.45'
+    elif x>0.45 and x<=0.50:
+         return '0.45~0.50'
+    elif x>0.50 and x<=0.55:
+         return '0.50~0.55'
+    elif x>0.55 and x<=0.60:
+         return '0.55~0.60'
+    elif x>0.60 and x<=0.65:
+         return '0.60~0.65'
+    elif x>0.65 and x<=0.70:
+         return '0.65~0.70'
+    elif x>0.70 and x<=0.75:
+         return '0.70~0.75'
+    elif x>0.75 and x<=0.80:
+         return '0.75~0.80'
+    elif x>0.80 and x<=0.85:
+         return '0.80~0.85'
+    elif x>0.85 and x<=0.90:
+         return '0.85~0.90'
+    elif x>0.90 and x<=0.95:
+         return '0.90~0.95'
+    elif x>0.95 and x<=1.00:
+         return '0.95~1.00'  
 
 def split_x_y(data,y_name): #暂时没有用
     '''
@@ -736,9 +799,7 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
     f = open("{}/group_mapping.txt".format(rpt_path),'w',encoding='utf-8')  
     f.write(str(map_group_re))  
     f.close()
-    return
-
-
+    return          
 
 class model_train(object):
     
@@ -866,8 +927,8 @@ class model_train(object):
         val_score = classifier.predict_proba(val_x)
         oft1_score = classifier.predict_proba(oft1_x)
         oft2_score = classifier.predict_proba(oft2_x)
-        oft3_score = classifier.predict_proba(oft3_x)   
-        
+        oft3_score = classifier.predict_proba(oft3_x)  
+         
         # psi 分布图
         plt.figure(figsize=(5, 3),dpi=150)
         plt.hist(dev_score[:,1], density=True, histtype='step', bins=20, label='DEV')
@@ -881,7 +942,6 @@ class model_train(object):
         plt.savefig('test1.jpg', bbox_inches='tight')
         plt.show()
         
-
         
         workbook = xlsxwriter.Workbook(filename)
         cell_format_bold = workbook.add_format({'bold':True,'font_name':u'微软雅黑'}) 
@@ -947,6 +1007,82 @@ class model_train(object):
         worksheet_desc.write_column('G4', dev_desc['50%'],cell_format1)
         worksheet_desc.write_column('H4', dev_desc['75%'],cell_format1)
         worksheet_desc.write_column('I4', dev_desc['max'],cell_format1)
+        
+        
+        worksheet_score = workbook.add_worksheet('score_dist')
+        dev_score2 = pd.Series(dev_score[:,1],name='score')
+        dev_score3 = pd.concat([dev_score2,dev_y.reset_index(drop=True)],axis = 1)
+        dev_score3['class'] = dev_score3['score'].apply(lambda x: score_dist_20(x))
+        dev_score4 = dev_score3['class'].value_counts().reset_index()
+        
+        val_score2 = pd.Series(val_score[:,1],name='score')
+        val_score3 = pd.concat([val_score2,val_y.reset_index(drop=True)],axis = 1)
+        val_score3['class'] = val_score3['score'].apply(lambda x: score_dist_20(x))
+        val_score4 = val_score3['class'].value_counts().reset_index()
+         
+        oft1_score2 = pd.Series(oft1_score[:,1],name='score')
+        oft1_score3 = pd.concat([oft1_score2,oft1_y.reset_index(drop=True)],axis = 1)
+        oft1_score3['class'] = oft1_score3['score'].apply(lambda x: score_dist_20(x))
+        oft1_score4 = oft1_score3['class'].value_counts().reset_index()
+         
+        oft2_score2 = pd.Series(oft2_score[:,1],name='score')
+        oft2_score3 = pd.concat([oft2_score2,oft2_y.reset_index(drop=True)],axis = 1)
+        oft2_score3['class'] = oft2_score3['score'].apply(lambda x: score_dist_20(x))
+        oft2_score4 = oft2_score3['class'].value_counts().reset_index()
+         
+        oft3_score2 = pd.Series(oft3_score[:,1],name='score')
+        oft3_score3 = pd.concat([oft3_score2,oft3_y.reset_index(drop=True)],axis = 1)
+        oft3_score3['class'] = oft3_score3['score'].apply(lambda x: score_dist_20(x))
+        oft3_score4 = oft3_score3['class'].value_counts().reset_index()    
+        
+        final_score=pd.DataFrame({
+                    '评分分组':dev_score4['index'],
+                    '开发样本':dev_score4['class'],
+                    '验证样本':val_score4['class'],
+                    '跨时间样本1':oft1_score4['class'],
+                    '跨时间样本2':oft2_score4['class'],
+                    '跨时间样本3':oft3_score4['class']})   
+        final_score['Percent1']=final_score['开发样本'].apply(lambda x :x/final_score['开发样本'].sum())
+        final_score['Percent2']=final_score['验证样本'].apply(lambda x :x/final_score['验证样本'].sum())
+        final_score['Percent3']=final_score['跨时间样本1'].apply(lambda x :x/final_score['跨时间样本1'].sum())
+        final_score['Percent4']=final_score['跨时间样本2'].apply(lambda x :x/final_score['跨时间样本2'].sum())
+        final_score['Percent5']=final_score['跨时间样本3'].apply(lambda x :x/final_score['跨时间样本3'].sum())
+        final_score=final_score.sort_values(by='评分分组')
+        
+        worksheet_score.write('A1','SCORE DISTRIBUTION', cell_format_bold)
+        worksheet_score.write('A2','1.number distribution', cell_format2)
+        worksheet_score.write_row('A3',list(final_score.columns[:6]), cell_format_bold)
+        worksheet_score.write_column('A4',final_score['评分分组'], cell_format1)
+        worksheet_score.write_column('B4',final_score['开发样本'], cell_format1)
+        worksheet_score.write_column('C4',final_score['验证样本'], cell_format1)
+        worksheet_score.write_column('D4',final_score['跨时间样本1'], cell_format1)
+        worksheet_score.write_column('E4',final_score['跨时间样本2'], cell_format1)
+        worksheet_score.write_column('F4',final_score['跨时间样本3'], cell_format1)
+  
+       
+        worksheet_score.write('A25','2.percentage', cell_format2)
+        worksheet_score.write_row('A26',list(final_score.columns[:6]), cell_format_bold)
+        worksheet_score.write_column('A27',final_score['评分分组'], cell_format1)
+        worksheet_score.write_column('B27',final_score['Percent1'], cell_format1)
+        worksheet_score.write_column('C27',final_score['Percent2'], cell_format1)
+        worksheet_score.write_column('D27',final_score['Percent3'], cell_format1)
+        worksheet_score.write_column('E27',final_score['Percent4'], cell_format1)
+        worksheet_score.write_column('F27',final_score['Percent5'], cell_format1)   
+        
+             
+        worksheet_score.write('A48','3.graph', cell_format2)
+        plt.figure(figsize=(4, 3),dpi=100)
+        plt.xticks(rotation=30)
+        plt.plot(final_score['评分分组'],final_score['Percent1'], label='DEV')
+        plt.plot(final_score['评分分组'],final_score['Percent2'], label='VAL')
+        plt.plot(final_score['评分分组'],final_score['Percent3'], label='OFT1')
+        plt.plot(final_score['评分分组'],final_score['Percent4'], label='OFT2')
+        plt.plot(final_score['评分分组'],final_score['Percent5'], label='OFT3')
+        plt.legend(loc='best')
+        plt.title("SCORE DISTRIBUTION", fontsize=10)
+        plt.savefig('SCORE.jpg')
+        plt.show()
+        worksheet_score.insert_image('A49','SCORE.jpg')        
         
         worksheet = workbook.add_worksheet('demo')
         worksheet.insert_image('A1','test1.jpg')
@@ -1169,7 +1305,6 @@ class model_train(object):
         workbook.close()
         os.system("rm *.jpg")
 
-    
     def lielian(self, sample, lielian_list, path3="lielian.csv"):
         # 字符型变量、分类变量的列联表和作图：
         # 删除已存在的csv文件
@@ -1341,3 +1476,4 @@ class model_train(object):
                 plt.savefig('bivar' + str(tag) + '_' + tag1 + '.jpg')
                 if plot_need_show:
                     plt.show()
+    
