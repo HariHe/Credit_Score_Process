@@ -915,7 +915,7 @@ class model_train(object):
         df_score = classifier.predict_proba(df_x)
         df_ks, df_auc, df_gain = ks_report(df_y.values, df_score.T[1], bins=bins)       
         return df_ks
-    
+
     def some_reports(self, dev, val, oft1, oft2, oft3, classifier, params,dev_lst,oft_lst1,oft_lst2,oft_lst3, plot_vars_num='null', bins=20, type='GBDT', psi_flag=0, bivar_flag=1, filename='./output.xlsx'):
         dev_x, dev_y = self.x_y_split(dev)
         val_x, val_y = self.x_y_split(val)
