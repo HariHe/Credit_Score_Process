@@ -490,7 +490,6 @@ def hive_data_get(hive_name, # 数坊表名
 
 
 
-
 '''
 char_auto_woe函数用于从按月变化（或其他维度变化）的数据集中，选取比较稳定、有效的字符型变量的粗分类。并自动生成WOE和分段。
 headers：需要分析的字段列表，需要是字符型变量。
@@ -506,10 +505,29 @@ rpt_path：生成报告的目录，例如'./rpt';
  2018/07/10 Hemiao
 '''
 
+
 def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
 
 # woe需要用到的函数：
 
+    def my_psi(build_data,off_data,name):
+        build_data[[name]] = build_data[[name]].astype(object)
+        off_data[[name]] = off_data[[name]].astype(object)
+        build_distribution             = pd.DataFrame()
+        build_distribution[name] = build_data[name] # 均转化为字符，否则mlp报错
+        build_distribution['build_num']= build_data['good_num']+build_data['bad_num']
+        off_distribution               = pd.DataFrame()
+        off_distribution[name]   = off_data[name] # 均转化为字符，否则mlp报错
+        off_distribution['off_num']    = off_data['good_num']+off_data['bad_num']
+        psi_data = pd.merge(build_distribution,off_distribution,on=name)
+        build_allnum = psi_data['build_num'].sum()
+        allnum = psi_data['off_num'].sum()
+        psi_value=0
+        for ii in range(len(psi_data)):
+            psi_value = psi_value+np.log((psi_data.loc[ii,'build_num']/build_allnum)/(psi_data.loc[ii,'off_num']/allnum)) \
+            * ((psi_data.loc[ii,'build_num']/build_allnum)-(psi_data.loc[ii,'off_num']/allnum))
+        return psi_value
+    
     def calc_pro(data, tgt):
         '''自动化的算概率'''
         noduplicate_list = data[headers[i]].drop_duplicates().reset_index(drop=True)
@@ -537,22 +555,7 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
         return result
 
 
-    def my_psi(build_data,off_data,name):
-        build_distribution             = pd.DataFrame()
-        build_distribution[name] = build_data[name]
-        build_distribution['build_num']= build_data['good_num']+build_data['bad_num']
-        off_distribution               = pd.DataFrame()
-        off_distribution[name]   = off_data[name]
-        off_distribution['off_num']    = off_data['good_num']+off_data['bad_num']
-        psi_data = pd.merge(build_distribution,off_distribution,on=name)
 
-        build_allnum = psi_data['build_num'].sum()
-        allnum = psi_data['off_num'].sum()
-        psi_value=0
-        for ii in range(len(psi_data)):
-            psi_value = psi_value+np.log((psi_data.loc[ii,'build_num']/build_allnum)/(psi_data.loc[ii,'off_num']/allnum)) \
-            * ((psi_data.loc[ii,'build_num']/build_allnum)-(psi_data.loc[ii,'off_num']/allnum))
-        return psi_value
 
     def my_ks(good_se,bad_se):
         '''计算ks值
@@ -608,14 +611,13 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
     map_group_re = {}
     map_woe_re = {}
     for i in range(0, len(headers)):
-#     for i in range(0, 1):
+        print(headers[i])
         #建模样本
         tmp_201710_201801                = pd.DataFrame()
         tmp_201710_201801[headers[i]]    = df1[headers[i]]
         tmp_201710_201801[tgt] = df1[tgt]
         tmp_201710_201801['bulid_num']   = 1
         build_data                       = tmp_201710_201801.groupby([headers[i],tgt],as_index=False)['bulid_num'].sum()
-    #    my_tmp_bulid = tmp_201710_201801.groupby([headers[i],tgt],as_index=False).count()
         build_bad_ratio                  = calc_pro(build_data, tgt)
 
         #offtime样本 2018-02
@@ -654,7 +656,7 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
 
             old_map[headers[i]] = build_bad_ratio[headers[i]]
             old_map['new_group_woe'] = old_map[headers[i]].map(map_woe)
-            report_map = pd.concat([report_map,old_map],axis=1)
+            report_map = pd.concat([report_map,old_map],axis=1,sort=True)
 
             dict_woe = {}
             dict_group = {}
@@ -686,13 +688,6 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
                     for k in range(len(border_index)-1):
                         build_bad_ratio.loc[border_index[k]+1:border_index[k+1]+1,'new_group'] = str(k)  #在原来df上加入新的一列也就是新的分组号
                     build_bad_ratio.loc[border_index[k+1]+1:len(build_bad_ratio),'new_group'] = str(k)
-    #                 group_name = build_bad_ratio.groupby(['new_group'])[headers[i]].sum()         
-
-    #                build_bad_ratio.loc[0,'new_group'] = 'group_0'  
-    #                for k in range(len(border_index)-1):
-    #                    build_bad_ratio.loc[border_index[k]+1:border_index[k+1]+1,'new_group'] = 'group_'+str(k)  #在原来df上加入新的一列也就是新的分组号
-    #                build_bad_ratio.loc[border_index[k+1]+1:len(build_bad_ratio),'new_group'] = 'group_'+str(k)
-    #                group_name = build_bad_ratio.groupby(['new_group'])[headers[i]].sum()                         #新组号和原来组的对应情况
 
                     build_new_group = build_bad_ratio.groupby(['new_group'],as_index=False).agg({'good_num': 'sum', 'bad_num': 'sum'})
                 #    build_new_group = build_new_group.sort_values(by = 'bad_ratio',axis = 0)                         #重新计算每组的好坏人的数量
@@ -721,12 +716,10 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
                     new_df,new_ks = my_ks(build_new_group['good_num'],build_new_group['bad_num'])                #分组后的ks
                     old_iv = my_iv(build_bad_ratio['good_num'],build_bad_ratio['bad_num'])
                     new_iv = my_iv(build_new_group['good_num'],build_new_group['bad_num'])
-    #                aold_iv = my_iv(off_bad_ratio['good_num'],off_bad_ratio['bad_num'])
-    #                anew_iv = my_iv(off_new_group['good_num'],off_new_group['bad_num'])
+
                     '''计算psi
                     '''
                     old_psi_value = my_psi(build_bad_ratio,off_bad_ratio_02,name=headers[i])
-    #                old_psi_value = my_psi(build_bad_ratio,off_bad_ratio,name=headers[i])
                     new_psi_value_02 = my_psi(build_new_group,off_new_group_02,name='new_group')
                     new_psi_value_03 = my_psi(build_new_group,off_new_group_03,name='new_group')
                     new_psi_value_04 = my_psi(build_new_group,off_new_group_04,name='new_group')
@@ -762,13 +755,6 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
             build_new_group = build_bad_ratio.groupby(['new_group'],as_index=False).agg({'good_num': 'sum', 'bad_num': 'sum'})
             build_new_group['bad_ratio'] = build_new_group['bad_num']/(build_new_group['good_num']+build_new_group['bad_num'])
 
-    #        build_bad_ratio.loc[0,'new_group'] = 'group_0'  
-    #        for k in range(len(border_index)-1):
-    #            build_bad_ratio.loc[border_index[k]+1:border_index[k+1]+1,'new_group'] = 'group_'+str(k)  #在原来df上加入新的一列也就是新的分组号
-    #        build_bad_ratio.loc[border_index[k+1]+1:len(build_bad_ratio),'new_group'] = 'group_'+str(k)
-    #        build_new_group = build_bad_ratio.groupby(['new_group'],as_index=False).agg({'good_num': 'sum', 'bad_num': 'sum'})
-    #        build_new_group['bad_ratio'] = build_new_group['bad_num']/(build_new_group['good_num']+build_new_group['bad_num'])
-    #        
             woe_tmp = my_woe(build_new_group)
             map_woe = dict(zip(woe_tmp['new_group'],woe_tmp['woe']))
 
@@ -776,7 +762,7 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
             feature_newgroup['new_group'] = build_bad_ratio['new_group']
             feature_newgroup['new_group_woe'] = feature_newgroup['new_group'].map(map_woe)
 
-            report_map= pd.concat([report_map,feature_newgroup],axis=1)
+            report_map= pd.concat([report_map,feature_newgroup],axis=1,sort=True)
 
             dict_woe = {}
             dict_group = {}
@@ -793,13 +779,19 @@ def char_auto_woe(headers, df1, df2, df3, df4, tgt, rpt_path):
     report_df['score']   = report_df['new_build_iv']-report_df['psi_sum']
     report_map.to_csv("{}/woe_group_final_report.csv".format(rpt_path),encoding='gb18030',index=False)
     report_df.to_csv("{}/woe_group_trial_report.csv".format(rpt_path),encoding='gb18030',index=False)
+    print(report_df)
     f = open("{}/woe_mapping.txt".format(rpt_path),'w',encoding='utf-8')  
     f.write(str(map_woe_re))  
     f.close()  
     f = open("{}/group_mapping.txt".format(rpt_path),'w',encoding='utf-8')  
     f.write(str(map_group_re))  
     f.close()
-    return          
+    return
+
+
+
+
+	
 
 class model_train(object):
     
@@ -915,7 +907,7 @@ class model_train(object):
         df_score = classifier.predict_proba(df_x)
         df_ks, df_auc, df_gain = ks_report(df_y.values, df_score.T[1], bins=bins)       
         return df_ks
-
+    
     def some_reports(self, dev, val, oft1, oft2, oft3, classifier, params,dev_lst,oft_lst1,oft_lst2,oft_lst3, plot_vars_num='null', bins=20, type='GBDT', psi_flag=0, bivar_flag=1, filename='./output.xlsx'):
         dev_x, dev_y = self.x_y_split(dev)
         val_x, val_y = self.x_y_split(val)
@@ -1041,7 +1033,8 @@ class model_train(object):
                     '验证样本':val_score4['class'],
                     '跨时间样本1':oft1_score4['class'],
                     '跨时间样本2':oft2_score4['class'],
-                    '跨时间样本3':oft3_score4['class']})   
+                    '跨时间样本3':oft3_score4['class']})
+        final_score=final_score.fillna(0)
         final_score['Percent1']=final_score['开发样本'].apply(lambda x :x/final_score['开发样本'].sum())
         final_score['Percent2']=final_score['验证样本'].apply(lambda x :x/final_score['验证样本'].sum())
         final_score['Percent3']=final_score['跨时间样本1'].apply(lambda x :x/final_score['跨时间样本1'].sum())
